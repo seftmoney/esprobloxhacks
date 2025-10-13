@@ -9,12 +9,122 @@ local ESP = {
     Enabled = false,
     Objects = {},
     SavedPosition = nil,
-    Flying = false,
-    BodyVelocity = nil,
     ButtonsVisible = false,
     ButtonFrame = nil,
-    WalkSpeed = 16
+    WalkSpeed = 16,
+    Noclip = false,
+    Invisible = false
 }
+
+-- Show loading screen
+local function showLoadingScreen()
+    local loadingGui = Instance.new("ScreenGui")
+    loadingGui.Name = "LoadingScreen"
+    loadingGui.Parent = game.CoreGui
+    loadingGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+    -- Main frame
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Size = UDim2.new(1, 0, 1, 0)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Parent = loadingGui
+
+    -- Red accent bar at top
+    local topBar = Instance.new("Frame")
+    topBar.Size = UDim2.new(1, 0, 0, 8)
+    topBar.Position = UDim2.new(0, 0, 0, 0)
+    topBar.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    topBar.BorderSizePixel = 0
+    topBar.Parent = mainFrame
+
+    -- Center content
+    local centerFrame = Instance.new("Frame")
+    centerFrame.Size = UDim2.new(0, 400, 0, 200)
+    centerFrame.Position = UDim2.new(0.5, -200, 0.5, -100)
+    centerFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    centerFrame.BorderSizePixel = 0
+    centerFrame.Parent = mainFrame
+
+    local centerCorner = Instance.new("UICorner")
+    centerCorner.CornerRadius = UDim.new(0, 12)
+    centerCorner.Parent = centerFrame
+
+    local centerStroke = Instance.new("UIStroke")
+    centerStroke.Color = Color3.fromRGB(255, 0, 0)
+    centerStroke.Thickness = 3
+    centerStroke.Parent = centerFrame
+
+    -- Title
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, 0, 0, 60)
+    title.Position = UDim2.new(0, 0, 0, 20)
+    title.BackgroundTransparency = 1
+    title.Text = "ESP System"
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.TextSize = 32
+    title.Font = Enum.Font.GothamBold
+    title.Parent = centerFrame
+
+    -- Made by text
+    local madeBy = Instance.new("TextLabel")
+    madeBy.Size = UDim2.new(1, 0, 0, 40)
+    madeBy.Position = UDim2.new(0, 0, 0, 80)
+    madeBy.BackgroundTransparency = 1
+    madeBy.Text = "Made by stupidmf_ez 1x"
+    madeBy.TextColor3 = Color3.fromRGB(255, 100, 100)
+    madeBy.TextSize = 20
+    madeBy.Font = Enum.Font.Gotham
+    madeBy.Parent = centerFrame
+
+    -- Platform text
+    local platform = Instance.new("TextLabel")
+    platform.Size = UDim2.new(1, 0, 0, 30)
+    platform.Position = UDim2.new(0, 0, 0, 120)
+    platform.BackgroundTransparency = 1
+    platform.Text = "On Roblox"
+    platform.TextColor3 = Color3.fromRGB(200, 200, 200)
+    platform.TextSize = 16
+    platform.Font = Enum.Font.Gotham
+    platform.Parent = centerFrame
+
+    -- Loading bar background
+    local loadBarBg = Instance.new("Frame")
+    loadBarBg.Size = UDim2.new(0.8, 0, 0, 8)
+    loadBarBg.Position = UDim2.new(0.1, 0, 0.8, 0)
+    loadBarBg.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    loadBarBg.BorderSizePixel = 0
+    loadBarBg.Parent = centerFrame
+
+    local barCorner = Instance.new("UICorner")
+    barCorner.CornerRadius = UDim.new(1, 0)
+    barCorner.Parent = loadBarBg
+
+    -- Loading bar fill
+    local loadBar = Instance.new("Frame")
+    loadBar.Size = UDim2.new(0, 0, 1, 0)
+    loadBar.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    loadBar.BorderSizePixel = 0
+    loadBar.Parent = loadBarBg
+
+    local barFillCorner = Instance.new("UICorner")
+    barFillCorner.CornerRadius = UDim.new(1, 0)
+    barFillCorner.Parent = loadBar
+
+    -- Animate loading bar
+    local tweenInfo = TweenInfo.new(5, Enum.EasingStyle.Linear)
+    local tween = TweenService:Create(loadBar, tweenInfo, {Size = UDim2.new(1, 0, 1, 0)})
+    tween:Play()
+
+    -- Remove after 5 seconds
+    spawn(function()
+        wait(5)
+        loadingGui:Destroy()
+    end)
+end
+
+-- Call loading screen
+showLoadingScreen()
 
 -- Simple notification system (smaller)
 function ESP:ShowNotification(title, message, duration)
@@ -133,220 +243,73 @@ local function applyWalkSpeed(character)
     end
 end
 
--- Mobile fly system (magic carpet style)
-function ESP:Fly()
-    if self.Flying then
-        self:Unfly()
-        return
-    end
+-- Noclip function
+function ESP:ToggleNoclip()
+    self.Noclip = not self.Noclip
     
     local character = LocalPlayer.Character
     if not character then return end
     
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    local rootPart = character:FindFirstChild("HumanoidRootPart")
-    
-    if not humanoid or not rootPart then return end
-    
-    self.Flying = true
-    
-    -- Save original gravity
-    self.OriginalGravity = workspace.Gravity
-    
-    -- Set gravity to 0 for smooth flight
-    workspace.Gravity = 0
-    
-    -- Create BodyVelocity for flight
-    self.BodyVelocity = Instance.new("BodyVelocity")
-    self.BodyVelocity.Velocity = Vector3.new(0, 0, 0)
-    self.BodyVelocity.MaxForce = Vector3.new(40000, 40000, 40000)
-    self.BodyVelocity.Parent = rootPart
-    
-    -- Enable platform stand
-    humanoid.PlatformStand = true
-    
-    -- Thumbstick for mobile movement
-    local thumbstickFrame = Instance.new("Frame")
-    local thumbstickBackground = Instance.new("Frame")
-    local thumbstickHandle = Instance.new("Frame")
-    
-    if UserInputService.TouchEnabled then
-        -- Create mobile thumbstick
-        local screenGui = Instance.new("ScreenGui")
-        screenGui.Name = "FlyStickGUI"
-        screenGui.Parent = game.CoreGui
-        
-        thumbstickFrame = Instance.new("Frame")
-        thumbstickFrame.Size = UDim2.new(0, 150, 0, 150)
-        thumbstickFrame.Position = UDim2.new(0, 50, 1, -200)
-        thumbstickFrame.BackgroundTransparency = 0.7
-        thumbstickFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-        thumbstickFrame.BorderSizePixel = 0
-        thumbstickFrame.Parent = screenGui
-        
-        local thumbstickCorner = Instance.new("UICorner")
-        thumbstickCorner.CornerRadius = UDim.new(1, 0)
-        thumbstickCorner.Parent = thumbstickFrame
-        
-        thumbstickBackground = Instance.new("Frame")
-        thumbstickBackground.Size = UDim2.new(0, 80, 0, 80)
-        thumbstickBackground.Position = UDim2.new(0.5, -40, 0.5, -40)
-        thumbstickBackground.BackgroundTransparency = 0.5
-        thumbstickBackground.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-        thumbstickBackground.BorderSizePixel = 0
-        thumbstickBackground.Parent = thumbstickFrame
-        
-        local backgroundCorner = Instance.new("UICorner")
-        backgroundCorner.CornerRadius = UDim.new(1, 0)
-        backgroundCorner.Parent = thumbstickBackground
-        
-        thumbstickHandle = Instance.new("Frame")
-        thumbstickHandle.Size = UDim2.new(0, 40, 0, 40)
-        thumbstickHandle.Position = UDim2.new(0.5, -20, 0.5, -20)
-        thumbstickHandle.BackgroundTransparency = 0.3
-        thumbstickHandle.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-        thumbstickHandle.BorderSizePixel = 0
-        thumbstickHandle.Parent = thumbstickFrame
-        
-        local handleCorner = Instance.new("UICorner")
-        handleCorner.CornerRadius = UDim.new(1, 0)
-        handleCorner.Parent = thumbstickHandle
-        
-        self.ThumbstickGUI = screenGui
-    end
-    
-    -- Flight control connection
-    self.FlightConnection = RunService.Heartbeat:Connect(function()
-        if not self.Flying or not character or not rootPart then return end
-        
-        local direction = Vector3.new(0, 0, 0)
-        local camera = workspace.CurrentCamera
-        
-        if UserInputService.TouchEnabled and thumbstickHandle then
-            -- Mobile thumbstick movement
-            local thumbstickPos = thumbstickHandle.Position
-            local center = UDim2.new(0.5, -20, 0.5, -20)
-            local offsetX = (thumbstickPos.X.Offset - center.X.Offset) / 40
-            local offsetY = (thumbstickPos.Y.Offset - center.Y.Offset) / 40
-            
-            if math.abs(offsetX) > 0.1 or math.abs(offsetY) > 0.1 then
-                local lookVector = camera.CFrame.LookVector
-                local rightVector = camera.CFrame.RightVector
-                
-                direction = direction + (rightVector * offsetX)
-                direction = direction + (lookVector * offsetY)
-            end
-        else
-            -- Keyboard fallback
-            local lookVector = camera.CFrame.LookVector
-            local rightVector = camera.CFrame.RightVector
-            
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-                direction = direction + lookVector
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.S) then
-                direction = direction - lookVector
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.A) then
-                direction = direction - rightVector
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) then
-                direction = direction + rightVector
-            end
-        end
-        
-        -- Up/down controls
-        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-            direction = direction + Vector3.new(0, 1, 0)
-        end
-        if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
-            direction = direction - Vector3.new(0, 1, 0)
-        end
-        
-        -- Apply velocity
-        if direction.Magnitude > 0 then
-            self.BodyVelocity.Velocity = direction.Unit * 50
-        else
-            self.BodyVelocity.Velocity = Vector3.new(0, 0, 0)
-        end
-    end)
-    
-    -- Mobile thumbstick touch events
-    if UserInputService.TouchEnabled then
-        local function onTouch(input, processed)
-            if processed then return end
-            if not self.Flying then return end
-            
-            local touchPos = input.Position
-            local framePos = thumbstickFrame.AbsolutePosition
-            local frameSize = thumbstickFrame.AbsoluteSize
-            
-            if touchPos.X >= framePos.X and touchPos.X <= framePos.X + frameSize.X and
-               touchPos.Y >= framePos.Y and touchPos.Y <= framePos.Y + frameSize.Y then
-               
-                local center = Vector2.new(framePos.X + frameSize.X/2, framePos.Y + frameSize.Y/2)
-                local maxDistance = frameSize.X/2 - 20
-                local distance = (touchPos - center).Magnitude
-                
-                if distance > maxDistance then
-                    touchPos = center + (touchPos - center).Unit * maxDistance
+    if self.Noclip then
+        -- Enable noclip
+        self.NoclipConnection = RunService.Stepped:Connect(function()
+            if not self.Noclip then return end
+            if character then
+                for _, part in pairs(character:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = false
+                    end
                 end
-                
-                thumbstickHandle.Position = UDim2.new(0, touchPos.X - framePos.X - 20, 0, touchPos.Y - framePos.Y - 20)
+            end
+        end)
+        self:ShowNotification("Noclip Enabled", "You can walk through walls", 3)
+    else
+        -- Disable noclip
+        if self.NoclipConnection then
+            self.NoclipConnection:Disconnect()
+            self.NoclipConnection = nil
+        end
+        
+        -- Restore collision
+        if character then
+            for _, part in pairs(character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = true
+                end
             end
         end
-        
-        local function onTouchEnd()
-            if not self.Flying then return end
-            thumbstickHandle.Position = UDim2.new(0.5, -20, 0.5, -20)
-        end
-        
-        UserInputService.TouchStarted:Connect(onTouch)
-        UserInputService.TouchMoved:Connect(onTouch)
-        UserInputService.TouchEnded:Connect(onTouchEnd)
+        self:ShowNotification("Noclip Disabled", "Collision restored", 3)
     end
-    
-    self:ShowNotification("Flight Enabled", string.format("Speed: %d\nUse thumbstick to move", self.WalkSpeed), 4)
 end
 
-function ESP:Unfly()
-    if not self.Flying then return end
+-- Invisibility function
+function ESP:ToggleInvisibility()
+    self.Invisible = not self.Invisible
     
-    self.Flying = false
-    
-    -- Restore gravity
-    if self.OriginalGravity then
-        workspace.Gravity = self.OriginalGravity
-    end
-    
-    -- Disconnect flight control
-    if self.FlightConnection then
-        self.FlightConnection:Disconnect()
-        self.FlightConnection = nil
-    end
-    
-    -- Remove BodyVelocity
-    if self.BodyVelocity then
-        self.BodyVelocity:Destroy()
-        self.BodyVelocity = nil
-    end
-    
-    -- Remove thumbstick
-    if self.ThumbstickGUI then
-        self.ThumbstickGUI:Destroy()
-        self.ThumbstickGUI = nil
-    end
-    
-    -- Reset character
     local character = LocalPlayer.Character
-    if character then
-        local humanoid = character:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            humanoid.PlatformStand = false
-        end
-    end
+    if not character then return end
     
-    self:ShowNotification("Flight Disabled", "Flight turned off", 3)
+    if self.Invisible then
+        -- Make invisible
+        for _, part in pairs(character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.Transparency = 1
+            elseif part:IsA("Decal") then
+                part.Transparency = 1
+            end
+        end
+        self:ShowNotification("Invisible", "You are now invisible", 3)
+    else
+        -- Make visible
+        for _, part in pairs(character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.Transparency = 0
+            elseif part:IsA("Decal") then
+                part.Transparency = 0
+            end
+        end
+        self:ShowNotification("Visible", "You are now visible", 3)
+    end
 end
 
 -- Draggable buttons system
@@ -371,7 +334,7 @@ function ESP:ShowButtons()
     -- Main frame (draggable)
     local mainFrame = Instance.new("Frame")
     mainFrame.Name = "ButtonFrame"
-    mainFrame.Size = UDim2.new(0, 150, 0, 160) -- Increased height for new button
+    mainFrame.Size = UDim2.new(0, 150, 0, 190) -- Increased height for new buttons
     mainFrame.Position = UDim2.new(0, 10, 0, 10)
     mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     mainFrame.BorderSizePixel = 0
@@ -399,7 +362,7 @@ function ESP:ShowButtons()
     -- Set Position Button
     local setPosBtn = Instance.new("TextButton")
     setPosBtn.Size = UDim2.new(0.8, 0, 0, 25)
-    setPosBtn.Position = UDim2.new(0.1, 0, 0.2, 0)
+    setPosBtn.Position = UDim2.new(0.1, 0, 0.15, 0)
     setPosBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
     setPosBtn.Text = "Set Position"
     setPosBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -414,7 +377,7 @@ function ESP:ShowButtons()
     -- Go to Position Button
     local goPosBtn = Instance.new("TextButton")
     goPosBtn.Size = UDim2.new(0.8, 0, 0, 25)
-    goPosBtn.Position = UDim2.new(0.1, 0, 0.4, 0)
+    goPosBtn.Position = UDim2.new(0.1, 0, 0.3, 0)
     goPosBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
     goPosBtn.Text = "Go to Position"
     goPosBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -429,7 +392,7 @@ function ESP:ShowButtons()
     -- Speed Button
     local speedBtn = Instance.new("TextButton")
     speedBtn.Size = UDim2.new(0.8, 0, 0, 25)
-    speedBtn.Position = UDim2.new(0.1, 0, 0.6, 0)
+    speedBtn.Position = UDim2.new(0.1, 0, 0.45, 0)
     speedBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
     speedBtn.Text = "Speed: " .. self.WalkSpeed
     speedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -441,20 +404,35 @@ function ESP:ShowButtons()
     btnCorner3.CornerRadius = UDim.new(0, 6)
     btnCorner3.Parent = speedBtn
     
-    -- Fly Button
-    local flyBtn = Instance.new("TextButton")
-    flyBtn.Size = UDim2.new(0.8, 0, 0, 25)
-    flyBtn.Position = UDim2.new(0.1, 0, 0.8, 0)
-    flyBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-    flyBtn.Text = "Toggle Fly"
-    flyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    flyBtn.TextSize = 12
-    flyBtn.Font = Enum.Font.GothamBold
-    flyBtn.Parent = mainFrame
+    -- Noclip Button
+    local noclipBtn = Instance.new("TextButton")
+    noclipBtn.Size = UDim2.new(0.8, 0, 0, 25)
+    noclipBtn.Position = UDim2.new(0.1, 0, 0.6, 0)
+    noclipBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    noclipBtn.Text = "Noclip: OFF"
+    noclipBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    noclipBtn.TextSize = 12
+    noclipBtn.Font = Enum.Font.GothamBold
+    noclipBtn.Parent = mainFrame
     
     local btnCorner4 = Instance.new("UICorner")
     btnCorner4.CornerRadius = UDim.new(0, 6)
-    btnCorner4.Parent = flyBtn
+    btnCorner4.Parent = noclipBtn
+    
+    -- Invisibility Button
+    local invisBtn = Instance.new("TextButton")
+    invisBtn.Size = UDim2.new(0.8, 0, 0, 25)
+    invisBtn.Position = UDim2.new(0.1, 0, 0.75, 0)
+    invisBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    invisBtn.Text = "Invisible: OFF"
+    invisBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    invisBtn.TextSize = 12
+    invisBtn.Font = Enum.Font.GothamBold
+    invisBtn.Parent = mainFrame
+    
+    local btnCorner5 = Instance.new("UICorner")
+    btnCorner5.CornerRadius = UDim.new(0, 6)
+    btnCorner5.Parent = invisBtn
     
     -- Button functions
     setPosBtn.MouseButton1Click:Connect(function()
@@ -469,8 +447,14 @@ function ESP:ShowButtons()
         self:ShowNotification("Set Speed", "Use ;speed [number]\nExample: ;speed 100", 4)
     end)
     
-    flyBtn.MouseButton1Click:Connect(function()
-        self:Fly()
+    noclipBtn.MouseButton1Click:Connect(function()
+        self:ToggleNoclip()
+        noclipBtn.Text = "Noclip: " .. (self.Noclip and "ON" or "OFF")
+    end)
+    
+    invisBtn.MouseButton1Click:Connect(function()
+        self:ToggleInvisibility()
+        invisBtn.Text = "Invisible: " .. (self.Invisible and "ON" or "OFF")
     end)
     
     -- Make draggable
@@ -753,10 +737,10 @@ local function handleChat(message)
         ESP:SetPosition()
     elseif msg == ";gopos" then
         ESP:GoToPosition()
-    elseif msg == ";fly" then
-        ESP:Fly()
-    elseif msg == ";unfly" then
-        ESP:Unfly()
+    elseif msg == ";noclip" then
+        ESP:ToggleNoclip()
+    elseif msg == ";invisible" then
+        ESP:ToggleInvisibility()
     elseif msg == ";showbtns" then
         ESP:ToggleButtons()
     elseif string.sub(msg, 1, 7) == ";speed " then
@@ -780,14 +764,15 @@ local function init()
     end)
     
     print("ESP System Loaded Successfully!")
+    print("Made by stupidmf_ez 1x")
     print("Chat Commands:")
     print(";enable esp - Enable ESP")
     print(";disable esp - Disable ESP") 
     print(";esp - Toggle ESP")
     print(";setpos - Save current position")
     print(";gopos - Teleport to saved position")
-    print(";fly - Toggle flight")
-    print(";unfly - Disable flight")
+    print(";noclip - Toggle noclip (walk through walls)")
+    print(";invisible - Toggle invisibility")
     print(";speed [number] - Set walk speed (1-200)")
     print(";showbtns - Toggle draggable buttons")
 end

@@ -1,368 +1,101 @@
--- X Hub - Advanced ESP System with Rayfield UI
--- Key: marisgood
-
+-- ESP System Loadstring
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
--- Key System
-local correctKey = "marisgood"
-local keyEntered = false
-
--- Load Rayfield Library
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
-
--- Key System Window
-local KeyWindow = Rayfield:CreateWindow({
-    Name = "X Hub - Key System",
-    LoadingTitle = "X Hub Authentication",
-    LoadingSubtitle = "by stupidmf_ez",
-    ConfigurationSaving = {
-        Enabled = false
-    },
-    Discord = {
-        Enabled = false
-    },
-    KeySystem = true,
-    KeySettings = {
-        Title = "X Hub Key",
-        Subtitle = "Enter Key to Continue",
-        Note = "Key: marisgood",
-        FileName = "XHubKey",
-        SaveKey = true,
-        GrabKeyFromSite = false,
-        Key = {correctKey}
-    }
-})
-
--- Main Hub Variables
-local XHub = {
+local ESP = {
     Enabled = false,
     Objects = {},
     SavedPosition = nil,
+    ButtonsVisible = false,
+    ButtonFrame = nil,
     WalkSpeed = 16,
-    JumpPower = 50,
     Noclip = false,
-    Invisible = false,
-    Flying = false,
-    FlySpeed = 50,
-    InfiniteJump = false,
-    QuickButtons = nil,
-    QuickButtonsVisible = false
+    Invisible = false
 }
 
--- Create Main Window
-local Window = Rayfield:CreateWindow({
-    Name = "X Hub | Modern ESP System",
-    LoadingTitle = "X Hub Loading...",
-    LoadingSubtitle = "Made by stupidmf_ez",
-    ConfigurationSaving = {
-        Enabled = true,
-        FolderName = "XHub",
-        FileName = "XHubConfig"
-    },
-    Discord = {
-        Enabled = false
-    },
-    KeySystem = false
-})
+-- Show enhanced loading screen
+local function showLoadingScreen()
+    local loadingGui = Instance.new("ScreenGui")
+    loadingGui.Name = "LoadingScreen"
+    loadingGui.Parent = game.CoreGui
+    loadingGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
--- Notification Function
-local function Notify(title, content, duration)
-    Rayfield:Notify({
-        Title = title,
-        Content = content,
-        Duration = duration or 3,
-        Image = nil
+    -- Main background with gradient
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Size = UDim2.new(1, 0, 1, 0)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+    
+    local gradient = Instance.new("UIGradient")
+    gradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(20, 0, 0)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 0, 10))
     })
-end
+    gradient.Rotation = 45
+    gradient.Parent = mainFrame
+    
+    mainFrame.Parent = loadingGui
 
--- ESP Functions
-function XHub:CreateESP(player)
-    if player == LocalPlayer then return end
-    if self.Objects[player] then return end
-    
-    local character = player.Character or player.CharacterAdded:Wait()
-    if not character then return end
-    
-    -- Create Highlight
-    local highlight = Instance.new("Highlight")
-    highlight.Name = player.Name .. "_ESP"
-    highlight.FillColor = Color3.fromRGB(255, 255, 255)
-    highlight.OutlineColor = Color3.fromRGB(200, 200, 255)
-    highlight.FillTransparency = 0.5
-    highlight.OutlineTransparency = 0
-    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-    highlight.Parent = character
-    
-    -- Create Billboard
-    local head = character:WaitForChild("Head", 5)
-    if head then
-        local billboard = Instance.new("BillboardGui")
-        billboard.Name = player.Name .. "_NameTag"
-        billboard.AlwaysOnTop = true
-        billboard.Size = UDim2.new(0, 200, 0, 80)
-        billboard.StudsOffset = Vector3.new(0, 4, 0)
-        billboard.Adornee = head
-        billboard.MaxDistance = 0
-        billboard.Parent = head
+    -- Animated particles in background
+    for i = 1, 15 do
+        local particle = Instance.new("Frame")
+        particle.Size = UDim2.new(0, math.random(4, 10), 0, math.random(4, 10))
+        particle.Position = UDim2.new(0, math.random(0, 1000), 0, math.random(0, 600))
+        particle.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        particle.BorderSizePixel = 0
+        particle.Parent = mainFrame
         
-        -- Name Label
-        local nameLabel = Instance.new("TextLabel")
-        nameLabel.Size = UDim2.new(1, 0, 0.5, 0)
-        nameLabel.BackgroundTransparency = 1
-        nameLabel.Text = player.DisplayName .. " (@" .. player.Name .. ")"
-        nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-        nameLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-        nameLabel.TextStrokeTransparency = 0
-        nameLabel.TextSize = 14
-        nameLabel.Font = Enum.Font.GothamBold
-        nameLabel.Parent = billboard
+        local particleCorner = Instance.new("UICorner")
+        particleCorner.CornerRadius = UDim.new(1, 0)
+        particleCorner.Parent = particle
         
-        -- Distance Label
-        local distanceLabel = Instance.new("TextLabel")
-        distanceLabel.Size = UDim2.new(1, 0, 0.5, 0)
-        distanceLabel.Position = UDim2.new(0, 0, 0.5, 0)
-        distanceLabel.BackgroundTransparency = 1
-        distanceLabel.Text = "0m"
-        distanceLabel.TextColor3 = Color3.fromRGB(200, 200, 255)
-        distanceLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-        distanceLabel.TextStrokeTransparency = 0
-        distanceLabel.TextSize = 12
-        distanceLabel.Font = Enum.Font.GothamBold
-        distanceLabel.Parent = billboard
-        
-        -- Tracer Line
-        local line = Instance.new("Beam")
-        line.Name = player.Name .. "_Line"
-        line.Color = ColorSequence.new(Color3.fromRGB(255, 255, 255))
-        line.Width0 = 0.3
-        line.Width1 = 0.3
-        line.FaceCamera = true
-        line.Parent = character
-        
-        local attachment0 = Instance.new("Attachment")
-        attachment0.Name = "LineAttachment0"
-        attachment0.Parent = head
-        
-        local myHead = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Head")
-        local attachment1 = Instance.new("Attachment")
-        attachment1.Name = "LineAttachment1"
-        attachment1.Parent = myHead or head
-        
-        line.Attachment0 = attachment0
-        line.Attachment1 = attachment1
-        
-        self.Objects[player] = {
-            Highlight = highlight,
-            Billboard = billboard,
-            DistanceLabel = distanceLabel,
-            Line = line,
-            Attachment0 = attachment0,
-            Attachment1 = attachment1
-        }
-    end
-    
-    player.CharacterAdded:Connect(function(newChar)
-        wait(1)
-        self:RemoveESP(player)
-        if self.Enabled then
-            self:CreateESP(player)
-        end
-    end)
-end
-
-function XHub:RemoveESP(player)
-    if self.Objects[player] then
-        for _, obj in pairs(self.Objects[player]) do
-            if obj then pcall(function() obj:Destroy() end) end
-        end
-        self.Objects[player] = nil
-    end
-end
-
-function XHub:ToggleESP(state)
-    self.Enabled = state
-    
-    if state then
-        for _, player in ipairs(Players:GetPlayers()) do
-            self:CreateESP(player)
-        end
-        
-        self.DistanceUpdate = RunService.Heartbeat:Connect(function()
-            local myChar = LocalPlayer.Character
-            local myHead = myChar and myChar:FindFirstChild("Head")
-            if not myHead then return end
-            
-            for player, espData in pairs(self.Objects) do
-                if player and player.Character and espData.DistanceLabel then
-                    local theirHead = player.Character:FindFirstChild("Head")
-                    if theirHead then
-                        local distance = (myHead.Position - theirHead.Position).Magnitude
-                        espData.DistanceLabel.Text = string.format("%.1fm", distance)
-                    end
-                end
+        -- Animate particle
+        spawn(function()
+            while particle.Parent do
+                local tween = TweenService:Create(particle, TweenInfo.new(2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
+                    Position = UDim2.new(0, math.random(0, 1000), 0, math.random(0, 600)),
+                    BackgroundColor3 = Color3.fromRGB(math.random(200, 255), 0, math.random(50, 100))
+                })
+                tween:Play()
+                wait(3)
             end
         end)
-        
-        Notify("ESP Enabled", "All players visible", 3)
-    else
-        for player, _ in pairs(self.Objects) do
-            self:RemoveESP(player)
-        end
-        
-        if self.DistanceUpdate then
-            self.DistanceUpdate:Disconnect()
-            self.DistanceUpdate = nil
-        end
-        
-        Notify("ESP Disabled", "ESP turned off", 3)
     end
-end
 
--- Noclip Function
-function XHub:ToggleNoclip(state)
-    self.Noclip = state
-    
-    if state then
-        self.NoclipConnection = RunService.Stepped:Connect(function()
-            if not self.Noclip then return end
-            local char = LocalPlayer.Character
-            if char then
-                for _, part in pairs(char:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        part.CanCollide = false
-                    end
-                end
-            end
-        end)
-        Notify("Noclip Enabled", "Walk through walls", 3)
-    else
-        if self.NoclipConnection then
-            self.NoclipConnection:Disconnect()
-            self.NoclipConnection = nil
-        end
-        
-        local char = LocalPlayer.Character
-        if char then
-            for _, part in pairs(char:GetDescendants()) do
-                if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
-                    part.CanCollide = true
-                end
-            end
-        end
-        Notify("Noclip Disabled", "Collision restored", 3)
-    end
-end
-
--- Fly Function (Mobile & PC Compatible)
-function XHub:ToggleFly(state)
-    self.Flying = state
-    
-    if state then
-        local character = LocalPlayer.Character
-        local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-        local root = character and character:FindFirstChild("HumanoidRootPart")
-        
-        if not humanoid or not root then
-            Notify("Error", "Character not found", 3)
-            return
-        end
-        
-        local bodyVelocity = Instance.new("BodyVelocity")
-        bodyVelocity.Velocity = Vector3.new(0, 0, 0)
-        bodyVelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-        bodyVelocity.Parent = root
-        
-        local bodyGyro = Instance.new("BodyGyro")
-        bodyGyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
-        bodyGyro.CFrame = root.CFrame
-        bodyGyro.Parent = root
-        
-        self.FlyConnection = RunService.Heartbeat:Connect(function()
-            if not self.Flying or not root or not root.Parent then
-                if bodyVelocity then bodyVelocity:Destroy() end
-                if bodyGyro then bodyGyro:Destroy() end
-                if self.FlyConnection then self.FlyConnection:Disconnect() end
-                return
-            end
-            
-            local camera = workspace.CurrentCamera
-            local moveDirection = Vector3.new(0, 0, 0)
-            
-            -- PC Controls
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-                moveDirection = moveDirection + (camera.CFrame.LookVector)
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.S) then
-                moveDirection = moveDirection - (camera.CFrame.LookVector)
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.A) then
-                moveDirection = moveDirection - (camera.CFrame.RightVector)
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) then
-                moveDirection = moveDirection + (camera.CFrame.RightVector)
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-                moveDirection = moveDirection + Vector3.new(0, 1, 0)
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
-                moveDirection = moveDirection - Vector3.new(0, 1, 0)
-            end
-            
-            -- Mobile Controls (Touch)
-            if humanoid.MoveVector.Magnitude > 0 then
-                moveDirection = moveDirection + (camera.CFrame.LookVector * humanoid.MoveVector.Z)
-                moveDirection = moveDirection + (camera.CFrame.RightVector * humanoid.MoveVector.X)
-            end
-            
-            if humanoid.Jump then
-                moveDirection = moveDirection + Vector3.new(0, 1, 0)
-            end
-            
-            bodyVelocity.Velocity = moveDirection.Unit * self.FlySpeed
-            bodyGyro.CFrame = camera.CFrame
-        end)
-        
-        Notify("Fly Enabled", "Mobile & PC compatible", 3)
-    else
-        self.Flying = false
-        if self.FlyConnection then
-            self.FlyConnection:Disconnect()
-            self.FlyConnection = nil
-        end
-        
-        local character = LocalPlayer.Character
-        local root = character and character:FindFirstChild("HumanoidRootPart")
-        if root then
-            for _, obj in pairs(root:GetChildren()) do
-                if obj:IsA("BodyVelocity") or obj:IsA("BodyGyro") then
-                    obj:Destroy()
-                end
-            end
-        end
-        
-        Notify("Fly Disabled", "Flight deactivated", 3)
-    end
-end
-
--- Teleport to Nearest Player
-function XHub:TeleportToNearest()    topBar.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    -- Red accent bar at top with shine effect
+    local topBar = Instance.new("Frame")
+    topBar.Size = UDim2.new(1, 0, 0, 6)
+    topBar.Position = UDim2.new(0, 0, 0, 0)
+    topBar.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
     topBar.BorderSizePixel = 0
     topBar.Parent = mainFrame
 
-    -- Center content
+    -- Shine effect on top bar
+    local shine = Instance.new("Frame")
+    shine.Size = UDim2.new(0, 100, 1, 0)
+    shine.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    shine.BackgroundTransparency = 0.7
+    shine.BorderSizePixel = 0
+    shine.Parent = topBar
+    
+    local shineTween = TweenService:Create(shine, TweenInfo.new(2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1), {
+        Position = UDim2.new(1, 0, 0, 0)
+    })
+    shineTween:Play()
+
+    -- Center content with glass morphism effect
     local centerFrame = Instance.new("Frame")
-    centerFrame.Size = UDim2.new(0, 400, 0, 200)
-    centerFrame.Position = UDim2.new(0.5, -200, 0.5, -100)
+    centerFrame.Size = UDim2.new(0, 450, 0, 280)
+    centerFrame.Position = UDim2.new(0.5, -225, 0.5, -140)
     centerFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    centerFrame.BackgroundTransparency = 0.2
     centerFrame.BorderSizePixel = 0
     centerFrame.Parent = mainFrame
 
     local centerCorner = Instance.new("UICorner")
-    centerCorner.CornerRadius = UDim.new(0, 12)
+    centerCorner.CornerRadius = UDim.new(0, 16)
     centerCorner.Parent = centerFrame
 
     local centerStroke = Instance.new("UIStroke")
@@ -370,44 +103,68 @@ function XHub:TeleportToNearest()    topBar.BackgroundColor3 = Color3.fromRGB(25
     centerStroke.Thickness = 3
     centerStroke.Parent = centerFrame
 
-    -- Title
+    -- Background blur effect
+    local blur = Instance.new("BlurEffect")
+    blur.Size = 10
+    blur.Parent = game.Lighting
+
+    -- Title with glow effect
     local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1, 0, 0, 60)
-    title.Position = UDim2.new(0, 0, 0, 20)
+    title.Size = UDim2.new(1, 0, 0, 70)
+    title.Position = UDim2.new(0, 0, 0, 30)
     title.BackgroundTransparency = 1
-    title.Text = "ESP System"
+    title.Text = "ESP SYSTEM"
     title.TextColor3 = Color3.fromRGB(255, 255, 255)
-    title.TextSize = 32
-    title.Font = Enum.Font.GothamBold
+    title.TextSize = 36
+    title.Font = Enum.Font.GothamBlack
+    title.TextStrokeColor3 = Color3.fromRGB(255, 0, 0)
+    title.TextStrokeTransparency = 0.7
     title.Parent = centerFrame
 
-    -- Made by text
+    -- Subtitle
+    local subtitle = Instance.new("TextLabel")
+    subtitle.Size = UDim2.new(1, 0, 0, 30)
+    subtitle.Position = UDim2.new(0, 0, 0, 90)
+    subtitle.BackgroundTransparency = 1
+    subtitle.Text = "Advanced Player Tracking"
+    subtitle.TextColor3 = Color3.fromRGB(200, 200, 200)
+    subtitle.TextSize = 18
+    subtitle.Font = Enum.Font.Gotham
+    subtitle.Parent = centerFrame
+
+    -- Made by text with animation
     local madeBy = Instance.new("TextLabel")
     madeBy.Size = UDim2.new(1, 0, 0, 40)
-    madeBy.Position = UDim2.new(0, 0, 0, 80)
+    madeBy.Position = UDim2.new(0, 0, 0, 130)
     madeBy.BackgroundTransparency = 1
     madeBy.Text = "Made by stupidmf_ez 1x"
     madeBy.TextColor3 = Color3.fromRGB(255, 100, 100)
     madeBy.TextSize = 20
-    madeBy.Font = Enum.Font.Gotham
+    madeBy.Font = Enum.Font.GothamBold
     madeBy.Parent = centerFrame
+
+    -- Animate made by text
+    local madeByTween = TweenService:Create(madeBy, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
+        TextColor3 = Color3.fromRGB(255, 200, 200)
+    })
+    madeByTween:Play()
 
     -- Platform text
     local platform = Instance.new("TextLabel")
     platform.Size = UDim2.new(1, 0, 0, 30)
-    platform.Position = UDim2.new(0, 0, 0, 120)
+    platform.Position = UDim2.new(0, 0, 0, 170)
     platform.BackgroundTransparency = 1
-    platform.Text = "On Roblox"
-    platform.TextColor3 = Color3.fromRGB(200, 200, 200)
-    platform.TextSize = 16
+    platform.Text = "On Roblox | Premium Edition"
+    platform.TextColor3 = Color3.fromRGB(150, 150, 150)
+    platform.TextSize = 14
     platform.Font = Enum.Font.Gotham
     platform.Parent = centerFrame
 
     -- Loading bar background
     local loadBarBg = Instance.new("Frame")
-    loadBarBg.Size = UDim2.new(0.8, 0, 0, 8)
+    loadBarBg.Size = UDim2.new(0.8, 0, 0, 12)
     loadBarBg.Position = UDim2.new(0.1, 0, 0.8, 0)
-    loadBarBg.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    loadBarBg.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
     loadBarBg.BorderSizePixel = 0
     loadBarBg.Parent = centerFrame
 
@@ -415,30 +172,82 @@ function XHub:TeleportToNearest()    topBar.BackgroundColor3 = Color3.fromRGB(25
     barCorner.CornerRadius = UDim.new(1, 0)
     barCorner.Parent = loadBarBg
 
-    -- Loading bar fill
+    -- Loading bar fill with gradient
     local loadBar = Instance.new("Frame")
     loadBar.Size = UDim2.new(0, 0, 1, 0)
     loadBar.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
     loadBar.BorderSizePixel = 0
     loadBar.Parent = loadBarBg
 
+    local barGradient = Instance.new("UIGradient")
+    barGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 50, 50)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0))
+    })
+    barGradient.Parent = loadBar
+
     local barFillCorner = Instance.new("UICorner")
     barFillCorner.CornerRadius = UDim.new(1, 0)
     barFillCorner.Parent = loadBar
 
-    -- Animate loading bar
-    local tweenInfo = TweenInfo.new(5, Enum.EasingStyle.Linear)
+    -- Loading percentage text
+    local percentText = Instance.new("TextLabel")
+    percentText.Size = UDim2.new(1, 0, 0, 20)
+    percentText.Position = UDim2.new(0, 0, 0.7, 0)
+    percentText.BackgroundTransparency = 1
+    percentText.Text = "Loading... 0%"
+    percentText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    percentText.TextSize = 14
+    percentText.Font = Enum.Font.GothamBold
+    percentText.Parent = centerFrame
+
+    -- Status text
+    local statusText = Instance.new("TextLabel")
+    statusText.Size = UDim2.new(1, 0, 0, 20)
+    statusText.Position = UDim2.new(0, 0, 0.9, 0)
+    statusText.BackgroundTransparency = 1
+    statusText.Text = "Initializing ESP System..."
+    statusText.TextColor3 = Color3.fromRGB(200, 200, 200)
+    statusText.TextSize = 12
+    statusText.Font = Enum.Font.Gotham
+    statusText.Parent = centerFrame
+
+    -- Animate loading bar with percentage updates
+    local tweenInfo = TweenInfo.new(4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
     local tween = TweenService:Create(loadBar, tweenInfo, {Size = UDim2.new(1, 0, 1, 0)})
+    
+    -- Update percentage during load
+    spawn(function()
+        for i = 0, 100, 2 do
+            percentText.Text = string.format("Loading... %d%%", i)
+            statusText.Text = i < 25 and "Initializing ESP System..." 
+                            or i < 50 and "Loading Player Tracking..." 
+                            or i < 75 and "Setting Up Interface..." 
+                            or "Finalizing..."
+            wait(0.08)
+        end
+    end)
+    
     tween:Play()
 
-    -- Remove after 5 seconds
+    -- Remove after animation and clean up
     spawn(function()
-        wait(5)
+        wait(4.2)
+        
+        -- Fade out animation
+        local fadeTween = TweenService:Create(centerFrame, TweenInfo.new(0.5), {
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0.5, -225, 0.5, -300)
+        })
+        fadeTween:Play()
+        
+        wait(0.5)
         loadingGui:Destroy()
+        blur:Destroy()
     end)
 end
 
--- Call loading screen
+-- Call enhanced loading screen
 showLoadingScreen()
 
 -- Simple notification system (smaller)
@@ -526,6 +335,65 @@ function ESP:ShowNotification(title, message, duration)
         wait(duration)
         screenGui:Destroy()
     end)
+end
+
+-- Function to find nearest player
+function ESP:FindNearestPlayer()
+    local myCharacter = LocalPlayer.Character
+    if not myCharacter then return nil end
+    
+    local myHead = myCharacter:FindFirstChild("Head")
+    if not myHead then return nil end
+    
+    local nearestPlayer = nil
+    local nearestDistance = math.huge
+    
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character then
+            local theirHead = player.Character:FindFirstChild("Head")
+            if theirHead then
+                local distance = (myHead.Position - theirHead.Position).Magnitude
+                if distance < nearestDistance then
+                    nearestDistance = distance
+                    nearestPlayer = player
+                end
+            end
+        end
+    end
+    
+    return nearestPlayer, nearestDistance
+end
+
+-- Function to teleport to nearest player
+function ESP:TeleportToNearestPlayer()
+    local nearestPlayer, distance = self:FindNearestPlayer()
+    
+    if not nearestPlayer then
+        self:ShowNotification("Error", "No other players found!", 3)
+        return
+    end
+    
+    local myCharacter = LocalPlayer.Character
+    local theirCharacter = nearestPlayer.Character
+    
+    if not myCharacter or not theirCharacter then
+        self:ShowNotification("Error", "Cannot teleport - character not found", 3)
+        return
+    end
+    
+    local myRoot = myCharacter:FindFirstChild("HumanoidRootPart")
+    local theirRoot = theirCharacter:FindFirstChild("HumanoidRootPart")
+    
+    if not myRoot or not theirRoot then
+        self:ShowNotification("Error", "Cannot teleport - missing HumanoidRootPart", 3)
+        return
+    end
+    
+    -- Teleport to nearest player
+    myRoot.CFrame = theirRoot.CFrame + Vector3.new(0, 3, 0) -- Slightly above to avoid getting stuck
+    
+    self:ShowNotification("Teleported", string.format("Teleported to %s (%.1fm away)", 
+        nearestPlayer.DisplayName, distance), 4)
 end
 
 -- Set walkspeed
@@ -649,7 +517,7 @@ function ESP:ShowButtons()
     -- Main frame (draggable)
     local mainFrame = Instance.new("Frame")
     mainFrame.Name = "ButtonFrame"
-    mainFrame.Size = UDim2.new(0, 150, 0, 190) -- Increased height for new buttons
+    mainFrame.Size = UDim2.new(0, 150, 0, 230) -- Increased height for new button
     mainFrame.Position = UDim2.new(0, 10, 0, 10)
     mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     mainFrame.BorderSizePixel = 0
@@ -677,7 +545,7 @@ function ESP:ShowButtons()
     -- Set Position Button
     local setPosBtn = Instance.new("TextButton")
     setPosBtn.Size = UDim2.new(0.8, 0, 0, 25)
-    setPosBtn.Position = UDim2.new(0.1, 0, 0.15, 0)
+    setPosBtn.Position = UDim2.new(0.1, 0, 0.12, 0)
     setPosBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
     setPosBtn.Text = "Set Position"
     setPosBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -692,7 +560,7 @@ function ESP:ShowButtons()
     -- Go to Position Button
     local goPosBtn = Instance.new("TextButton")
     goPosBtn.Size = UDim2.new(0.8, 0, 0, 25)
-    goPosBtn.Position = UDim2.new(0.1, 0, 0.3, 0)
+    goPosBtn.Position = UDim2.new(0.1, 0, 0.24, 0)
     goPosBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
     goPosBtn.Text = "Go to Position"
     goPosBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -704,10 +572,25 @@ function ESP:ShowButtons()
     btnCorner2.CornerRadius = UDim.new(0, 6)
     btnCorner2.Parent = goPosBtn
     
+    -- TP to Player Button
+    local tpPlayerBtn = Instance.new("TextButton")
+    tpPlayerBtn.Size = UDim2.new(0.8, 0, 0, 25)
+    tpPlayerBtn.Position = UDim2.new(0.1, 0, 0.36, 0)
+    tpPlayerBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    tpPlayerBtn.Text = "TP to Player"
+    tpPlayerBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    tpPlayerBtn.TextSize = 12
+    tpPlayerBtn.Font = Enum.Font.GothamBold
+    tpPlayerBtn.Parent = mainFrame
+    
+    local btnCorner6 = Instance.new("UICorner")
+    btnCorner6.CornerRadius = UDim.new(0, 6)
+    btnCorner6.Parent = tpPlayerBtn
+    
     -- Speed Button
     local speedBtn = Instance.new("TextButton")
     speedBtn.Size = UDim2.new(0.8, 0, 0, 25)
-    speedBtn.Position = UDim2.new(0.1, 0, 0.45, 0)
+    speedBtn.Position = UDim2.new(0.1, 0, 0.48, 0)
     speedBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
     speedBtn.Text = "Speed: " .. self.WalkSpeed
     speedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -737,7 +620,7 @@ function ESP:ShowButtons()
     -- Invisibility Button
     local invisBtn = Instance.new("TextButton")
     invisBtn.Size = UDim2.new(0.8, 0, 0, 25)
-    invisBtn.Position = UDim2.new(0.1, 0, 0.75, 0)
+    invisBtn.Position = UDim2.new(0.1, 0, 0.72, 0)
     invisBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
     invisBtn.Text = "Invisible: OFF"
     invisBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -756,6 +639,10 @@ function ESP:ShowButtons()
     
     goPosBtn.MouseButton1Click:Connect(function()
         self:GoToPosition()
+    end)
+    
+    tpPlayerBtn.MouseButton1Click:Connect(function()
+        self:TeleportToNearestPlayer()
     end)
     
     speedBtn.MouseButton1Click:Connect(function()
@@ -1052,6 +939,8 @@ local function handleChat(message)
         ESP:SetPosition()
     elseif msg == ";gopos" then
         ESP:GoToPosition()
+    elseif msg == ";tpplayer" then
+        ESP:TeleportToNearestPlayer()
     elseif msg == ";noclip" then
         ESP:ToggleNoclip()
     elseif msg == ";invisible" then
@@ -1086,6 +975,7 @@ local function init()
     print(";esp - Toggle ESP")
     print(";setpos - Save current position")
     print(";gopos - Teleport to saved position")
+    print(";tpplayer - Teleport to nearest player")
     print(";noclip - Toggle noclip (walk through walls)")
     print(";invisible - Toggle invisibility")
     print(";speed [number] - Set walk speed (1-200)")

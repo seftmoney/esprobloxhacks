@@ -1,40 +1,355 @@
--- ESP System Loadstring
+-- X Hub - Advanced ESP System with Rayfield UI
+-- Key: marisgood
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
-local ESP = {
+-- Key System
+local correctKey = "marisgood"
+local keyEntered = false
+
+-- Load Rayfield Library
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+-- Key System Window
+local KeyWindow = Rayfield:CreateWindow({
+    Name = "X Hub - Key System",
+    LoadingTitle = "X Hub Authentication",
+    LoadingSubtitle = "by stupidmf_ez",
+    ConfigurationSaving = {
+        Enabled = false
+    },
+    Discord = {
+        Enabled = false
+    },
+    KeySystem = true,
+    KeySettings = {
+        Title = "X Hub Key",
+        Subtitle = "Enter Key to Continue",
+        Note = "Key: marisgood",
+        FileName = "XHubKey",
+        SaveKey = true,
+        GrabKeyFromSite = false,
+        Key = {correctKey}
+    }
+})
+
+-- Main Hub Variables
+local XHub = {
     Enabled = false,
     Objects = {},
     SavedPosition = nil,
-    ButtonsVisible = false,
-    ButtonFrame = nil,
     WalkSpeed = 16,
+    JumpPower = 50,
     Noclip = false,
-    Invisible = false
+    Invisible = false,
+    Flying = false,
+    FlySpeed = 50,
+    InfiniteJump = false,
+    QuickButtons = nil,
+    QuickButtonsVisible = false
 }
 
--- Show loading screen
-local function showLoadingScreen()
-    local loadingGui = Instance.new("ScreenGui")
-    loadingGui.Name = "LoadingScreen"
-    loadingGui.Parent = game.CoreGui
-    loadingGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+-- Create Main Window
+local Window = Rayfield:CreateWindow({
+    Name = "X Hub | Modern ESP System",
+    LoadingTitle = "X Hub Loading...",
+    LoadingSubtitle = "Made by stupidmf_ez",
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "XHub",
+        FileName = "XHubConfig"
+    },
+    Discord = {
+        Enabled = false
+    },
+    KeySystem = false
+})
 
-    -- Main frame
-    local mainFrame = Instance.new("Frame")
-    mainFrame.Size = UDim2.new(1, 0, 1, 0)
-    mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    mainFrame.BorderSizePixel = 0
-    mainFrame.Parent = loadingGui
+-- Notification Function
+local function Notify(title, content, duration)
+    Rayfield:Notify({
+        Title = title,
+        Content = content,
+        Duration = duration or 3,
+        Image = nil
+    })
+end
 
-    -- Red accent bar at top
-    local topBar = Instance.new("Frame")
-    topBar.Size = UDim2.new(1, 0, 0, 8)
-    topBar.Position = UDim2.new(0, 0, 0, 0)
-    topBar.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+-- ESP Functions
+function XHub:CreateESP(player)
+    if player == LocalPlayer then return end
+    if self.Objects[player] then return end
+    
+    local character = player.Character or player.CharacterAdded:Wait()
+    if not character then return end
+    
+    -- Create Highlight
+    local highlight = Instance.new("Highlight")
+    highlight.Name = player.Name .. "_ESP"
+    highlight.FillColor = Color3.fromRGB(255, 255, 255)
+    highlight.OutlineColor = Color3.fromRGB(200, 200, 255)
+    highlight.FillTransparency = 0.5
+    highlight.OutlineTransparency = 0
+    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    highlight.Parent = character
+    
+    -- Create Billboard
+    local head = character:WaitForChild("Head", 5)
+    if head then
+        local billboard = Instance.new("BillboardGui")
+        billboard.Name = player.Name .. "_NameTag"
+        billboard.AlwaysOnTop = true
+        billboard.Size = UDim2.new(0, 200, 0, 80)
+        billboard.StudsOffset = Vector3.new(0, 4, 0)
+        billboard.Adornee = head
+        billboard.MaxDistance = 0
+        billboard.Parent = head
+        
+        -- Name Label
+        local nameLabel = Instance.new("TextLabel")
+        nameLabel.Size = UDim2.new(1, 0, 0.5, 0)
+        nameLabel.BackgroundTransparency = 1
+        nameLabel.Text = player.DisplayName .. " (@" .. player.Name .. ")"
+        nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        nameLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+        nameLabel.TextStrokeTransparency = 0
+        nameLabel.TextSize = 14
+        nameLabel.Font = Enum.Font.GothamBold
+        nameLabel.Parent = billboard
+        
+        -- Distance Label
+        local distanceLabel = Instance.new("TextLabel")
+        distanceLabel.Size = UDim2.new(1, 0, 0.5, 0)
+        distanceLabel.Position = UDim2.new(0, 0, 0.5, 0)
+        distanceLabel.BackgroundTransparency = 1
+        distanceLabel.Text = "0m"
+        distanceLabel.TextColor3 = Color3.fromRGB(200, 200, 255)
+        distanceLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+        distanceLabel.TextStrokeTransparency = 0
+        distanceLabel.TextSize = 12
+        distanceLabel.Font = Enum.Font.GothamBold
+        distanceLabel.Parent = billboard
+        
+        -- Tracer Line
+        local line = Instance.new("Beam")
+        line.Name = player.Name .. "_Line"
+        line.Color = ColorSequence.new(Color3.fromRGB(255, 255, 255))
+        line.Width0 = 0.3
+        line.Width1 = 0.3
+        line.FaceCamera = true
+        line.Parent = character
+        
+        local attachment0 = Instance.new("Attachment")
+        attachment0.Name = "LineAttachment0"
+        attachment0.Parent = head
+        
+        local myHead = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Head")
+        local attachment1 = Instance.new("Attachment")
+        attachment1.Name = "LineAttachment1"
+        attachment1.Parent = myHead or head
+        
+        line.Attachment0 = attachment0
+        line.Attachment1 = attachment1
+        
+        self.Objects[player] = {
+            Highlight = highlight,
+            Billboard = billboard,
+            DistanceLabel = distanceLabel,
+            Line = line,
+            Attachment0 = attachment0,
+            Attachment1 = attachment1
+        }
+    end
+    
+    player.CharacterAdded:Connect(function(newChar)
+        wait(1)
+        self:RemoveESP(player)
+        if self.Enabled then
+            self:CreateESP(player)
+        end
+    end)
+end
+
+function XHub:RemoveESP(player)
+    if self.Objects[player] then
+        for _, obj in pairs(self.Objects[player]) do
+            if obj then pcall(function() obj:Destroy() end) end
+        end
+        self.Objects[player] = nil
+    end
+end
+
+function XHub:ToggleESP(state)
+    self.Enabled = state
+    
+    if state then
+        for _, player in ipairs(Players:GetPlayers()) do
+            self:CreateESP(player)
+        end
+        
+        self.DistanceUpdate = RunService.Heartbeat:Connect(function()
+            local myChar = LocalPlayer.Character
+            local myHead = myChar and myChar:FindFirstChild("Head")
+            if not myHead then return end
+            
+            for player, espData in pairs(self.Objects) do
+                if player and player.Character and espData.DistanceLabel then
+                    local theirHead = player.Character:FindFirstChild("Head")
+                    if theirHead then
+                        local distance = (myHead.Position - theirHead.Position).Magnitude
+                        espData.DistanceLabel.Text = string.format("%.1fm", distance)
+                    end
+                end
+            end
+        end)
+        
+        Notify("ESP Enabled", "All players visible", 3)
+    else
+        for player, _ in pairs(self.Objects) do
+            self:RemoveESP(player)
+        end
+        
+        if self.DistanceUpdate then
+            self.DistanceUpdate:Disconnect()
+            self.DistanceUpdate = nil
+        end
+        
+        Notify("ESP Disabled", "ESP turned off", 3)
+    end
+end
+
+-- Noclip Function
+function XHub:ToggleNoclip(state)
+    self.Noclip = state
+    
+    if state then
+        self.NoclipConnection = RunService.Stepped:Connect(function()
+            if not self.Noclip then return end
+            local char = LocalPlayer.Character
+            if char then
+                for _, part in pairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = false
+                    end
+                end
+            end
+        end)
+        Notify("Noclip Enabled", "Walk through walls", 3)
+    else
+        if self.NoclipConnection then
+            self.NoclipConnection:Disconnect()
+            self.NoclipConnection = nil
+        end
+        
+        local char = LocalPlayer.Character
+        if char then
+            for _, part in pairs(char:GetDescendants()) do
+                if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+                    part.CanCollide = true
+                end
+            end
+        end
+        Notify("Noclip Disabled", "Collision restored", 3)
+    end
+end
+
+-- Fly Function (Mobile & PC Compatible)
+function XHub:ToggleFly(state)
+    self.Flying = state
+    
+    if state then
+        local character = LocalPlayer.Character
+        local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+        local root = character and character:FindFirstChild("HumanoidRootPart")
+        
+        if not humanoid or not root then
+            Notify("Error", "Character not found", 3)
+            return
+        end
+        
+        local bodyVelocity = Instance.new("BodyVelocity")
+        bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+        bodyVelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+        bodyVelocity.Parent = root
+        
+        local bodyGyro = Instance.new("BodyGyro")
+        bodyGyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+        bodyGyro.CFrame = root.CFrame
+        bodyGyro.Parent = root
+        
+        self.FlyConnection = RunService.Heartbeat:Connect(function()
+            if not self.Flying or not root or not root.Parent then
+                if bodyVelocity then bodyVelocity:Destroy() end
+                if bodyGyro then bodyGyro:Destroy() end
+                if self.FlyConnection then self.FlyConnection:Disconnect() end
+                return
+            end
+            
+            local camera = workspace.CurrentCamera
+            local moveDirection = Vector3.new(0, 0, 0)
+            
+            -- PC Controls
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+                moveDirection = moveDirection + (camera.CFrame.LookVector)
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+                moveDirection = moveDirection - (camera.CFrame.LookVector)
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+                moveDirection = moveDirection - (camera.CFrame.RightVector)
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+                moveDirection = moveDirection + (camera.CFrame.RightVector)
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+                moveDirection = moveDirection + Vector3.new(0, 1, 0)
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+                moveDirection = moveDirection - Vector3.new(0, 1, 0)
+            end
+            
+            -- Mobile Controls (Touch)
+            if humanoid.MoveVector.Magnitude > 0 then
+                moveDirection = moveDirection + (camera.CFrame.LookVector * humanoid.MoveVector.Z)
+                moveDirection = moveDirection + (camera.CFrame.RightVector * humanoid.MoveVector.X)
+            end
+            
+            if humanoid.Jump then
+                moveDirection = moveDirection + Vector3.new(0, 1, 0)
+            end
+            
+            bodyVelocity.Velocity = moveDirection.Unit * self.FlySpeed
+            bodyGyro.CFrame = camera.CFrame
+        end)
+        
+        Notify("Fly Enabled", "Mobile & PC compatible", 3)
+    else
+        self.Flying = false
+        if self.FlyConnection then
+            self.FlyConnection:Disconnect()
+            self.FlyConnection = nil
+        end
+        
+        local character = LocalPlayer.Character
+        local root = character and character:FindFirstChild("HumanoidRootPart")
+        if root then
+            for _, obj in pairs(root:GetChildren()) do
+                if obj:IsA("BodyVelocity") or obj:IsA("BodyGyro") then
+                    obj:Destroy()
+                end
+            end
+        end
+        
+        Notify("Fly Disabled", "Flight deactivated", 3)
+    end
+end
+
+-- Teleport to Nearest Player
+function XHub:TeleportToNearest()    topBar.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
     topBar.BorderSizePixel = 0
     topBar.Parent = mainFrame
 
